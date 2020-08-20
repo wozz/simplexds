@@ -1,6 +1,8 @@
 package mesh
 
 import (
+	"math/rand"
+
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	listener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
@@ -35,6 +37,11 @@ func NewListener(port int, defaultRoutes bool) *v2.Listener {
 				},
 			},
 		},
+		ConnectionBalanceConfig: &v2.Listener_ConnectionBalanceConfig{
+			BalanceType: &v2.Listener_ConnectionBalanceConfig_ExactBalance_{
+				ExactBalance: &v2.Listener_ConnectionBalanceConfig_ExactBalance{},
+			},
+		},
 	}
 }
 
@@ -63,6 +70,17 @@ func httpConnectionManager(defaultRoutes bool) *any.Any {
 				Name: "envoy.router",
 			},
 		},
+	}
+	// randomly add new filter to trigger listener change
+	if rand.Intn(10) < 2 {
+		hcm.HttpFilters = []*http_connection_manager.HttpFilter{
+			{
+				Name: "envoy.filters.http.cors",
+			},
+			{
+				Name: "envoy.router",
+			},
+		}
 	}
 	hcmAny, _ := ptypes.MarshalAny(hcm)
 	return hcmAny
